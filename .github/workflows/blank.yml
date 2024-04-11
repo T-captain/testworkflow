@@ -1,0 +1,36 @@
+name: Auto Pull Requests
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  auto-pull-request:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v2
+
+      - name: Get main branch latest commit hash
+        id: main_commit
+        run: echo "::set-output name=hash::$(git rev-parse main)"
+
+      - name: List branches
+        id: list_branches
+        run: echo "::set-output name=branches::$(git branch --format='%(refname:short)' --no-column)"
+
+      - name: Create Pull Requests
+        run: |
+          branches="${{ steps.list_branches.outputs.branches }}"
+          main_hash="${{ steps.main_commit.outputs.hash }}"
+          for branch in $branches; do
+            if [[ "$branch" != "main" ]]; then
+              base_branch="main"
+              head_branch="$branch"
+              title="Update from main branch"
+              body="This pull request updates the branch with changes from the main branch."
+              gh pr create --base $base_branch --head $head_branch --title "$title" --body "$body"
+            fi
+          done
